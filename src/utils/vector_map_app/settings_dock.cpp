@@ -11,8 +11,12 @@ SettingsDock::SettingsDock(Map* copy, QWidget* parent)
   connect(e_road_poly_count_, &QLineEdit::editingFinished, this, &SettingsDock::savePolyCount);
   connect(this, &SettingsDock::sigPassPolyCount, map_, &Map::setPolyCount);
 
-  QHBoxLayout* dock_layout = new QHBoxLayout(this);
+  QWidget* container = new QWidget(this);
+  QHBoxLayout* dock_layout = new QHBoxLayout(container);
   dock_layout->addWidget(e_road_poly_count_);
+
+  container->setLayout(dock_layout);
+  setWidget(container);
 }
 
 void SettingsDock::savePolyCount()

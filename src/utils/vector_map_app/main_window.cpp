@@ -1,5 +1,7 @@
 #include "utils/vector_map_app/main_window.hpp"
 
+#include <ament_index_cpp/get_package_share_directory.hpp>
+
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QMenuBar>
@@ -22,15 +24,23 @@ MainWindow::MainWindow(QWidget* parent)
 
   QVBoxLayout* main_layout = new QVBoxLayout(central_widget);
   map_ = new Map();
-  QScrollArea* map_scrolled = new QScrollArea(map_);
+  QScrollArea* map_scrolled = new QScrollArea(central_widget);
+  map_scrolled->setWidget(map_);
+  map_scrolled->setWidgetResizable(true);
   main_layout->addWidget(map_scrolled);
 
   QMenu* file_menu = menuBar()->addMenu("File");
   
   a_load_data_ = new QAction("Load map", this);
   a_save_data_ = new QAction("Save data", this);
-  a_load_data_->setIcon(QIcon(":icons/load-data.png"));
-  a_save_data_->setIcon(QIcon(":icons/save-as-data.png"));
+
+  std::string package_path = ament_index_cpp::get_package_share_directory("path_find_examples");
+
+  //check resource exist
+  qDebug() << QDir(QString::fromStdString(package_path) + "/resources/icons").entryList();
+
+  a_load_data_->setIcon(QIcon(QString::fromStdString(package_path) + "/resources/icons/load-data.png"));
+  a_save_data_->setIcon(QIcon(QString::fromStdString(package_path) + "/resources/icons/save-as-data.png"));
 
   file_menu->addAction(a_load_data_);
   file_menu->addAction(a_save_data_);

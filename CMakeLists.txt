@@ -35,7 +35,6 @@ set(vectorMap_src
   src/utils/vector_map_app/primitives.cpp
 )
 
-qt5_add_resources(QT_RESOURCE_FILES resources/resource.qrc)
 qt5_wrap_cpp(vectorMap_moc_src ${vectorMap_include})
 
 add_library(vectorMap_lib
@@ -57,6 +56,11 @@ target_link_libraries(vectorMap_lib PRIVATE Qt5::Widgets)
 add_executable(vectorMap_app src/utils/vector_map_app/main.cpp)
 target_link_libraries(vectorMap_app PRIVATE Qt5::Widgets
                                     PUBLIC vectorMap_lib)
+
+install(
+  DIRECTORY resources
+  DESTINATION share/${PROJECT_NAME}
+)
 
 install(TARGETS vectorMap_app vectorMap_lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}

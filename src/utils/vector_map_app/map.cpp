@@ -56,6 +56,10 @@ bool Map::loadData(const QString& filename)
 void Map::paintEvent(QPaintEvent* ev)
 {
   QPainter p(this);
+  QPen pen(Qt::black);
+  pen.setWidth(15);
+
+  p.setPen(pen);
   p.fillRect(rect(), Qt::white);
 
   for (const auto& road : roads_) {
@@ -87,15 +91,19 @@ void Map::mousePressEvent(QMouseEvent* ev)
           roads_.push_back(std::make_shared<RoadArc>());
           roads_.back()->setNextPoint(viewportToGlobalCoord(ev->pos()));          
         }
-
-        if (!roads_.back()->isRoadBuilded())
-        {
-          roads_.back()->setNextPoint(viewportToGlobalCoord(ev->pos()));
-        }
         else
         {
-          roads_.push_back(std::make_shared<RoadArc>());
-          roads_.back()->setNextPoint(viewportToGlobalCoord(ev->pos()));
+          if (!roads_.back()->isRoadBuilded())
+          {
+            if (roads_.back()->getType() == Road::Type::Straight)
+              roads_.back().reset(new RoadArc());
+            roads_.back()->setNextPoint(viewportToGlobalCoord(ev->pos()));
+          }
+          else
+          {
+            roads_.push_back(std::make_shared<RoadArc>());
+            roads_.back()->setNextPoint(viewportToGlobalCoord(ev->pos()));
+          }
         }
 
         break;
@@ -107,15 +115,19 @@ void Map::mousePressEvent(QMouseEvent* ev)
           roads_.push_back(std::make_shared<RoadStraight>());
           roads_.back()->setNextPoint(viewportToGlobalCoord(ev->pos()));
         }
-
-        if (!roads_.back()->isRoadBuilded())
-        {
-          roads_.back()->setNextPoint(viewportToGlobalCoord(ev->pos()));
-        }
         else
         {
-          roads_.push_back(std::make_shared<RoadStraight>());
-          roads_.back()->setNextPoint(viewportToGlobalCoord(ev->pos()));
+          if (!roads_.back()->isRoadBuilded())
+          {
+            if (roads_.back()->getType() == Road::Type::Arc)
+              roads_.back().reset(new RoadStraight());
+            roads_.back()->setNextPoint(viewportToGlobalCoord(ev->pos()));
+          }
+          else
+          {
+            roads_.push_back(std::make_shared<RoadStraight>());
+            roads_.back()->setNextPoint(viewportToGlobalCoord(ev->pos()));
+          }
         }
 
         break;
@@ -128,24 +140,26 @@ void Map::mousePressEvent(QMouseEvent* ev)
             return road->underPoint(viewportToGlobalCoord(ev->pos())); 
           }),
           roads_.end());
-
+        
         //  search for intersection betweed roads and mouse pose and delete from roads
         break;
       }
     }
+
+    update();
   }
 }
 
 void Map::mouseMoveEvent(QMouseEvent* ev)
 {
-  if (ev->button() == Qt::RightButton)
+  if (ev->buttons() & Qt::RightButton)
   {
     QPoint delta = ev->pos() - last_mouse_pos_;
     last_mouse_pos_ = ev->pos();
 
     pan(delta);   // ← Вот здесь вызывается pan()
   }
-  else if (ev->button() == Qt::LeftButton)
+  else if (ev->button() & Qt::LeftButton)
   {
     switch (mode_)
     {

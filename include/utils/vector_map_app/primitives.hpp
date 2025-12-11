@@ -9,26 +9,34 @@ class Road : public QObject
 {
   Q_OBJECT
 public:
-  Road() { }
+  enum Type {Arc = 0, Straight};
+
+  Road(const Type& t)
+  : type(t)
+  { }
   Road(const QPointF& s,
        const QPointF& e)
-  : points({s, e})
+  : points({s, e}),
+    type(Type::Straight)
   { }
   Road(const QPointF& s,
        const QPointF& m,
        const QPointF& e)
-  : points({s, e, m})
+  : points({s, e, m}),
+    type(Type::Arc)
   { }
 
   virtual void setNextPoint(const QPointF& s) = 0;
   virtual QPainterPath getPath(const QPoint& offset) = 0;
   
+  Type getType() { return type; };
   bool underPoint(const QPoint& offset);
   bool isRoadBuilded();
 
 protected:
   std::vector<std::optional<QPointF>> points;
   std::shared_ptr<QPainterPath> path;
+  Type type;
 };
 
 class RoadArc : public Road
@@ -37,7 +45,7 @@ class RoadArc : public Road
 public:
 
   RoadArc()
-  : Road()
+  : Road(Type::Arc)
   { }
 
   RoadArc(const QPointF& s,
@@ -56,7 +64,7 @@ class RoadStraight : public Road
 public:
 
   RoadStraight()
-  : Road()
+  : Road(Type::Straight)
   { }
 
   RoadStraight(const QPointF& s,
