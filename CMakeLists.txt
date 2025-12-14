@@ -21,6 +21,8 @@ include_directories(include)
 
 set(vectorMap_include
   include/utils/vector_map_app/main_window.hpp
+  include/utils/vector_map_app/map_data.hpp
+  include/utils/vector_map_app/map_manager.hpp
   include/utils/vector_map_app/map.hpp
   include/utils/vector_map_app/primitives.hpp
   include/utils/vector_map_app/settings_dock.hpp
@@ -29,6 +31,8 @@ set(vectorMap_include
 
 set(vectorMap_src
   src/utils/vector_map_app/main_window.cpp
+  src/utils/vector_map_app/map_data.hpp
+  src/utils/vector_map_app/map_manager.hpp
   src/utils/vector_map_app/map.cpp
   src/utils/vector_map_app/settings_dock.cpp
   src/utils/vector_map_app/tools_dock.cpp

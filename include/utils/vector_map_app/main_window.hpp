@@ -4,7 +4,7 @@
 
 #include "utils/vector_map_app/settings_dock.hpp"
 #include "utils/vector_map_app/tools_dock.hpp"
-#include "utils/vector_map_app/map.hpp"
+#include "utils/vector_map_app/map_manager.hpp"
 
 class MainWindow : public QMainWindow
 {
@@ -13,12 +13,14 @@ public:
   MainWindow(QWidget *parent = nullptr);
 
 public:
+  void onLoadCostmap();
   void onLoadData();
   void onSaveData();
 
 private:
-  Map* map_;
+  MapManager* map_manager_;
 
+  QAction* a_load_costmap_;
   QAction* a_load_data_;
   QAction* a_save_data_;
 

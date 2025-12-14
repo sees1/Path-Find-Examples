@@ -1,15 +1,15 @@
 #include <QDockWidget>
 
-#include "utils/vector_map_app/map.hpp"
+#include "utils/vector_map_app/map_manager.hpp"
 
 class ToolsDock : public QDockWidget
 {
   Q_OBJECT
 public:
-  ToolsDock(Map* copy, QWidget* parent = nullptr);
+  ToolsDock(MapManager* copy, QWidget* parent = nullptr);
 
 private:
-  Map* map_;
+  MapManager* map_manager_;
 
   QPushButton* b_move_camera_;
   QToolButton* b_create_road_;
