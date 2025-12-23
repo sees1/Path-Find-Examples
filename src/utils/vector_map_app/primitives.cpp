@@ -12,17 +12,17 @@ RoadGeometry::RoadGeometry(std::shared_ptr<QPainterPath>& view_represent,
     subdividePath(view_represent);
     ppoint_to_vertice_[0] = v[0];
     ppoint_to_vertice_[poly_count_] = v[1];
-    vertice_to_ppoint[v[0]] = 0;
-    vertice_to_ppoint[v[1]] = poly_count_;
+    vertice_to_ppoint_[v[0]] = 0;
+    vertice_to_ppoint_[v[1]] = poly_count_;
   }
   else if (elem_count == 3)
   {
-    path_polygon_ = std::make_shared<QVector<QPolygonF>>(std::move(view_represent->toSubpathPolygons()));
-    poly_count_ = (path_polygon_->size() - 1);
+    path_polygons_ = std::make_shared<QList<QPolygonF>>(std::move(view_represent->toSubpathPolygons()));
+    poly_count_ = (path_polygons_->size() - 1);
     ppoint_to_vertice_[0] = v[0];
     ppoint_to_vertice_[poly_count_] = v[2];
-    vertice_to_ppoint[v[0]] = 0;
-    vertice_to_ppoint[v[2]] = poly_count_;
+    vertice_to_ppoint_[v[0]] = 0;
+    vertice_to_ppoint_[v[2]] = poly_count_;
   }
 }
 
@@ -31,7 +31,7 @@ Vertice RoadGeometry::addVertice(const QPointF& point, int id)
   int ppoint = findClosestPoint(point);
 
   ppoint_to_vertice_[ppoint] = Vertice{id, point};
-  vertice_to_point_[ppoint_to_vertice_[ppoint]] = ppoint;
+  vertice_to_ppoint_[ppoint_to_vertice_[ppoint]] = ppoint;
 
   return ppoint_to_vertice_[ppoint];
 }
@@ -39,9 +39,9 @@ Vertice RoadGeometry::addVertice(const QPointF& point, int id)
 bool RoadGeometry::removeVerticeById(int id)
 {
   auto needed_v_iter = std::find_if(vertice_to_ppoint_.begin(), vertice_to_ppoint_.end(),
-    [this, &id](auto& vertice)
+    [this, &id](auto& elem)
     {
-      return id == vertice.id;
+      return id == elem.first.id;
     }
   );
 
@@ -49,13 +49,13 @@ bool RoadGeometry::removeVerticeById(int id)
     return false;
   else
   {
-    ppoint_to_vertice_->erase(needed_v_iter.second);
-    vertice_to_ppoint_->erase(needed_v_iter);
+    ppoint_to_vertice_.erase(needed_v_iter->second);
+    vertice_to_ppoint_.erase(needed_v_iter);
     return true;
   }
 }
 
-std::tuple<Vertice, Vertice> RoadGeometry::betweenIds(int id)
+std::tuple<Vertice, Vertice> RoadGeometry::betweenIds(const QPointF& point)
 {
   int ppoint = findClosestPoint(point);
 
@@ -63,42 +63,53 @@ std::tuple<Vertice, Vertice> RoadGeometry::betweenIds(int id)
   lower_v--; // get first less than ppoint vertice
   auto upper_v = ppoint_to_vertice_.upper_bound(ppoint);
 
-  return {lower_v.second, upper_v.second};
+  return std::make_tuple((*lower_v).second, (*upper_v).second);
 }
 
 std::vector<Vertice> RoadGeometry::getControlPoints()
 {
-  auto& start = vertice_to_ppoint.begin() + 1;
-  auto& end = vertice_to_ppoint.end() - 1;
+  auto start = vertice_to_ppoint_.begin();
+  start++;
+  auto end = vertice_to_ppoint_.end();
+  end--;
+  end--;
 
   std::vector<Vertice> res;
   for(start; start != end; ++start)
   {
-    res.push_back(start.first);
+    res.push_back((*start).first);
   }
 
   return res;
 }
 
-std::map<Vertice, std::vector<Vertice>> getGraph()
+std::tuple<Vertice, Vertice> RoadGeometry::getBasePoints()
+{
+  auto end = vertice_to_ppoint_.end();
+  end--;
+  return std::make_tuple((*vertice_to_ppoint_.begin()).first, (*end).first);
+}
+
+std::map<Vertice, std::vector<Vertice>> RoadGeometry::getGraph()
 {
   std::map<Vertice, std::vector<Vertice>> res;
 
   auto left = vertice_to_ppoint_.begin();
-  auto right = vertice_to_ppoint_.begin() + 1;
+  auto right = vertice_to_ppoint_.begin();
+  right++;
 
   if (right == vertice_to_ppoint_.end())
   {
-    res[left.first] = std::vector<Vertice>{right.first};
-    res[right.first] = std::vector<Vertice>{left.first};
+    res[left->first] = std::vector<Vertice>{right->first};
+    res[right->first] = std::vector<Vertice>{left->first};
 
     return res;
   }
 
   while(right != vertice_to_ppoint_.end())
   {
-    res[left.first].push_back(right.first);
-    res[right.first].push_back(left.first);
+    res[left->first].push_back(right->first);
+    res[right->first].push_back(left->first);
 
     left = right;
     right++;
@@ -107,14 +118,14 @@ std::map<Vertice, std::vector<Vertice>> getGraph()
   return res;
 }
 
-int findClosestPoint(const QPointF& target)
+int RoadGeometry::findClosestPoint(const QPointF& target)
 {
   int best_ppoint = -1;
   float best_dist2 = std::numeric_limits<float>::max();
 
   for(int ppoint = 0; ppoint < poly_count_; ++ppoint)
   {
-    QPolygonF& poly_copy = path_polygons_[ppoint];
+    QPolygonF& poly_copy = (*path_polygons_)[ppoint];
     int poly_size = poly_copy.size();
 
     QPointF poly_corner_min = poly_copy[0];
@@ -149,31 +160,32 @@ void RoadGeometry::subdividePath(std::shared_ptr<QPainterPath>& view_represent)
 {
   if (path_polygons_ == nullptr)
   {
-    path_polygons_->reserve(poly_count);
+    path_polygons_->reserve(poly_count_);
 
     qreal path_length = view_represent->length();
     qreal step = path_length / poly_count_;
 
     QPointF prev_point = view_represent->pointAtPercent(0.0);
 
-    for(int i = 1; i <= poly_count; ++i)
+    for(int i = 1; i <= poly_count_; ++i)
     {
       qreal cur_len = i * step;
-      qreal cur_point_per = view_represent->percentAtLenght(cur_len);
+      qreal cur_point_per = view_represent->percentAtLength(cur_len);
       QPointF cur_point = view_represent->pointAtPercent(cur_point_per);
 
-      path_polygons_->emplace_back({prev_point, cur_point});
+      QPolygonF temp (QVector<QPointF>({prev_point, cur_point}));
+      (*path_polygons_).append(temp);
       prev_point = cur_point;
     }
   }
 }
 
-bool Road::underPoint(const QPoint& global_mouse_pose)
+bool Road::underPoint(const QPointF& global_mouse_pose)
 {
   QPainterPathStroker stroker;
   stroker.setWidth(15);
 
-  QPainterPath stroke_path = stroker.createStroke(*path);
+  QPainterPath stroke_path = stroker.createStroke(*path_);
   bool fl = stroke_path.contains(global_mouse_pose);
 
   return fl;
@@ -181,26 +193,25 @@ bool Road::underPoint(const QPoint& global_mouse_pose)
 
 bool Road::isRoadBuilded()
 {
-  size_t size_by_type = type == Type::Straight ? 2
-                                               : 3;
+  size_t size_by_type = (type_ == Type::Straight) ? 2 : 3;
   
-  if (points.size() != size)
+  if (control_points_.size() != size_by_type)
     return false;
 
   return true;
 }
 
-Vertice Road::addVertice(const QPoint& point, int id)
+Vertice Road::addVertice(const QPointF& point, int id)
 {
   return road_geometry_->addVertice(point, id);
 }
 
-bool Road::removeVerticeById(int id);
+bool Road::removeVerticeById(int id)
 {
   return road_geometry_->removeVerticeById(id);
 }
 
-bool Road::betweenIds(const QPointF& point);
+std::tuple<Vertice, Vertice> Road::betweenIds(const QPointF& point)
 {
   return road_geometry_->betweenIds(point);
 }
@@ -210,72 +221,83 @@ std::vector<Vertice> Road::getControlPoints()
   return road_geometry_->getControlPoints();
 }
 
-std::map<Vertices, std::vector<Vertices>> Road::getGraph()
+std::tuple<Vertice, Vertice> Road::getBasePoints()
 {
-  std::map<Vertices, std::vector<Vertices>> graph;
+  return road_geometry_->getBasePoints();
+}
 
-  if (type == Type::Arc)
+std::map<Vertice, std::vector<Vertice>> Road::getGraph()
+{
+  std::map<Vertice, std::vector<Vertice>> graph;
+
+  if (type_ == Type::Arc)
   {
-    graph[points[0]] = std::vector<Vertices>{points[2]};
-    graph[points[2]] = std::vector<Vertices>{points[0]};
+    graph[control_points_[0]] = std::vector<Vertice>{control_points_[2]};
+    graph[control_points_[2]] = std::vector<Vertice>{control_points_[0]};
   }
-  else if (type == Type::Straight)
+  else if (type_ == Type::Straight)
   {
-    graph[points[0]] = std::vector<Vertices>{points[1]};
-    graph[points[1]] = std::vector<Vertices>{points[0]};
+    graph[control_points_[0]] = std::vector<Vertice>{control_points_[1]};
+    graph[control_points_[1]] = std::vector<Vertice>{control_points_[0]};
   }
 
   return graph;
 }
 
-std::shared_ptr<QVector<QPolygonF>> Road::getPathPolygons()
+QList<QPolygonF> Road::getPathPolygons()
 {
-  return path->toSubpathPolygons();
+  return path_->toSubpathPolygons();
 }
 
-size_t Road::pointsCount()
+int Road::getPolyCount()
 {
-  return points.size();
+  return 1;
 }
+
+void Road::setPolyCount(int poly_count)
+{
+  return;
+}
+
 
 void RoadArc::setNextPoint(const QPointF& s, int id)
 {
-  if (points.size() > 2)
+  if (control_points_.size() > 2)
     throw std::runtime_error("Can't add more points to arc road!");
 
-  points.push_back({s, id});
+  control_points_.push_back(Vertice{id, s});
 }
 
 QPainterPath RoadArc::getPath(const QPoint& offset)
 {
-  if (path == nullptr)
+  if (path_ == nullptr)
   {
-    path = std::make_shared<QPainterPath>(points[0]);
-    path->quadTo(points[1], points[2]);
+    path_ = std::make_shared<QPainterPath>(control_points_[0].coord);
+    path_->quadTo(control_points_[1].coord, control_points_[2].coord);
 
-    geometry = std::make_shared<RoadGeometry>(path);
+    road_geometry_ = std::make_shared<RoadGeometry>(path_, control_points_, 100);
   }
   
-  return path->translated(-offset);
+  return path_->translated(-offset);
 }
 
 void RoadStraight::setNextPoint(const QPointF& s, int id)
 {
-  if (points.size() > 1)
+  if (control_points_.size() > 1)
     throw std::runtime_error("Can't add more points to straight road!");
 
-  points.push_back({s, id});
+  control_points_.push_back(Vertice{id, s});
 }
 
 QPainterPath RoadStraight::getPath(const QPoint& offset)
 {
-  if (path == nullptr)
+  if (path_ == nullptr)
   {
-    path = std::make_shared<QPainterPath>(points[0]);
-    path->lineTo(points[1]);
+    path_ = std::make_shared<QPainterPath>(control_points_[0].coord);
+    path_->lineTo(control_points_[1].coord);
 
-    geometry = std::make_shared<RoadGeometry>(path);
+    road_geometry_ = std::make_shared<RoadGeometry>(path_, control_points_, 100);
   }
 
-  return path->translated(-offset);
+  return path_->translated(-offset);
 }

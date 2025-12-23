@@ -76,34 +76,48 @@ void Map::deleteRoad(const QPointF& point)
     }
   );
 
-  std::vector<std::shared_ptr<Road>> needed_clean;
-
   std::for_each(remove_iter, roads_.end(),
     [this](auto& remove_road)
     {
-      auto& control_points = remove_road->getControlPoints();
-      needed_remove_.insert(control_points.begin(), control_points.end());
+      auto control_vertice = remove_road->getControlPoints();
+      Vertice base_vertice_l, base_vertice_r;
+      std::tie(base_vertice_l, base_vertice_r) = remove_road->getBasePoints();
+      remove_vertices_.insert(remove_vertices_.end(), control_vertice.begin(), control_vertice.end());
 
-      needed_clean.insert(needed_clean.end(), intersection_[remove_road].begin(), intersection_[remove_road].end());
-
-      for(auto& [road, inter_road] : intersection_)
+      // remove base vertice of deleted road
+      for(auto& [u, neighbors] : graph_)
       {
-        inter_road.erase(std::remove(inter_road.begin(), inter_road.end(), *remove_road), inter_road.end());
+        neighbors.erase(std::remove(neighbors.begin(), neighbors.end(), base_vertice_l), neighbors.end());
+        neighbors.erase(std::remove(neighbors.begin(), neighbors.end(), base_vertice_r), neighbors.end());
       }
 
-      intersection_.erase(*remove_road);
+      graph_.erase(base_vertice_l);
+      graph_.erase(base_vertice_r);
+
+      // add roads that should be cleaned  
+      roads_need_clean_.insert(roads_need_clean_.end(), intersection_[remove_road].begin(), intersection_[remove_road].end());
+
+      // remove deleted road from dependency roads
+      for(auto& [road, inter_road] : intersection_)
+      {
+        inter_road.erase(std::remove(inter_road.begin(), inter_road.end(), remove_road), inter_road.end());
+      }
+
+      intersection_.erase(remove_road);
     }
   );
 
   std::vector<std::shared_ptr<Road>> clean_roads;
 
-  std::for_each(needed_clean.begin(), needed_clean.end()
-    [this](auto& road)
+  std::for_each(roads_need_clean_.begin(), roads_need_clean_.end(),
+    [this, &clean_roads](auto& road)
     {
-      if (intersection.find(road) != nullptr)
-        clean_roads.push_back(*road);
+      if (intersection_.find(road) != intersection_.end())
+        clean_roads.push_back(road);
     }
   );
+
+  roads_need_clean_ = clean_roads;
 
   refreshGraph();
 }
@@ -120,35 +134,35 @@ std::vector<std::shared_ptr<Road>>& Map::getRoads()
 
 void Map::refreshGraph()
 {
-  if (!needed_remove_.empty())
+  if (!remove_vertices_.empty())
   {
-    std::vector<std::pair<std::share_ptr<Road>, Vertice>> remove_from_graph;
+    std::vector<std::pair<std::shared_ptr<Road>, Vertice>> remove_from_road;
 
-    for (auto & road : clean_roads)
+    for (auto & road : roads_need_clean_)
     {
-      auto& control_points = road->getControlPoint();
+      auto control_points = road->getControlPoints();
 
-      auto& remove_iter = std::remove_if(control_point.begin(), control_points.end(),
+      auto remove_iter = std::remove_if(control_points.begin(), control_points.end(),
                             [this](auto& point)
                             {
-                              return std::find(needed_clean.begin(), needed_clean.end(), point) != needed_clean.end();
+                              return std::find(remove_vertices_.begin(), remove_vertices_.end(), point) != remove_vertices_.end();
                             }
-                          );
+                         );
       
-      std::for_each(remove_iter, control_point.end(),
-        [this](auto& point)
+      std::for_each(remove_iter, control_points.end(),
+        [this, &remove_from_road, &road](auto& point)
         {
-          remove_from_graph.push_back({road, point});
+          remove_from_road.push_back({road, point});
           road->removeVerticeById(point.id);
         }
       );
     }
 
-    for(auto& [road, vertice] : remove_from_graph)
+    for(auto& [road, vertice] : remove_from_road)
     {
-      for(auto& [u, neighbor] : graph_)
+      for(auto& [u, neighbors] : graph_)
       {
-        neighbor.erase(std::remove(neighbors.begin(), neighbors.end(), vertice), neighbors.end());
+        neighbors.erase(std::remove(neighbors.begin(), neighbors.end(), vertice), neighbors.end());
       }
 
       graph_.erase(vertice);
@@ -156,11 +170,11 @@ void Map::refreshGraph()
       Vertice road_l, road_r;
       std::tie(road_l, road_r) = road->betweenIds(vertice.coord);
 
-      graph[road_l].push_back(road_r);
-      graph[road_r].push_back(road_l);
-
-      
+      graph_[road_l].push_back(road_r);
+      graph_[road_r].push_back(road_l);
     }
+
+    return;
   }
 
   const auto& new_road = roads_.back();
@@ -173,8 +187,11 @@ void Map::refreshGraph()
 
       if (road_path.intersects(new_road_path))
       {
-        QPoint inter_point = intersectPathPoint(road_path->getPathPolygons(), new_road_path->getPathPolygons());
-        vertices_idx_++
+        auto road_poly = road->getPathPolygons();
+        auto new_road_poly = new_road->getPathPolygons();
+
+        QPointF inter_point = intersectPathPoint(road_poly, new_road_poly);
+        vertices_idx_++;
 
         Vertice new_road_l, new_road_r;
         Vertice old_road_l, old_road_r;
@@ -192,8 +209,8 @@ void Map::refreshGraph()
         auto& vec_o_r = graph_[old_road_r];
         graph_[old_road_r].erase(std::remove(vec_o_r.begin(), vec_o_r.end(), old_road_l), vec_o_r.end());
 
-        Vertice temp = new_road->addVertice(inter_point, vertice_idx);
-        road->addVertice(inter_point, vertice_idx);
+        Vertice temp = new_road->addVertice(inter_point, vertices_idx_);
+        road->addVertice(inter_point, vertices_idx_);
 
         graph_[new_road_l].push_back(temp);
         graph_[new_road_r].push_back(temp);
@@ -211,7 +228,7 @@ void Map::refreshGraph()
   );
 }
 
-QPointF Map::intersectPathPoint(std::shared_ptr<QVector<QPolygonsF>>& lhs, std::shared_ptr<QVector<QPolygonsF>>& rhs)
+QPointF Map::intersectPathPoint(const QList<QPolygonF>& lhs, const QList<QPolygonF>& rhs)
 {
   // check if point lies within both segments
   auto between = [](double left_border, double right_border, double value)
@@ -220,9 +237,9 @@ QPointF Map::intersectPathPoint(std::shared_ptr<QVector<QPolygonsF>>& lhs, std::
               value <= std::max(left_border, right_border) + 1e-6);
   };
 
-  for (const QPolygonF& poly_lhs : *lhs)
+  for (const QPolygonF& poly_lhs : lhs)
   {
-    for(const QPolygonF& poly_rhs : *rhs)
+    for(const QPolygonF& poly_rhs : rhs)
     {
       if (poly_rhs.intersects(poly_lhs))
       {

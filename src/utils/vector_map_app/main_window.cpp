@@ -49,8 +49,8 @@ MainWindow::MainWindow(QWidget* parent)
   connect(a_load_data_,    &QAction::triggered, this, &MainWindow::onLoadData);
   connect(a_save_data_,    &QAction::triggered, this, &MainWindow::onSaveData);
 
-  tools_dock_ = new ToolsDock(map_, this);
-  settings_dock_ = new SettingsDock(map_, this);
+  tools_dock_ = new ToolsDock(map_manager_, this);
+  settings_dock_ = new SettingsDock(map_manager_, this);
 
   addDockWidget(Qt::TopDockWidgetArea, tools_dock_);
   addDockWidget(Qt::RightDockWidgetArea, settings_dock_);

@@ -3,7 +3,8 @@
 MapManager::MapManager(QWidget* parent)
 : QWidget(parent),
   mode_(Mode::MOVE_CAMERA),
-  costmap_img_(nullptr)
+  costmap_img_(nullptr),
+  map_(new Map());
 {
   this->setStyleSheet("border:1px solid gray;");
   this->setMinimumSize(1000, 1000);
@@ -12,6 +13,7 @@ MapManager::MapManager(QWidget* parent)
 
 MapManager::~MapManager()
 {
+  delete map_;
   delete costmap_img_;
   delete data_;
 }
@@ -48,22 +50,22 @@ bool MapManager::saveData(const QString& filename)
   if (data_ == nullptr)
     return false;
 
-  data_->saveTo(filename, roads_, poly_count_);
+  // data_->saveTo(filename, map_->getRoads(), map_->getPolyCount());
 
   return true;
 }
 
 bool MapManager::loadData(const QString& filename)
 {
-  if (data_ == nullptr)
-  {
-    if (costmap_img_ == nullptr)
-      data_ = new MapData();
-    else
-      data_ = new MapData(costmap_resolution_, map_zero_offset_);
-  }
+  // if (data_ == nullptr)
+  // {
+  //   if (costmap_img_ == nullptr)
+  //     data_ = new MapData();
+  //   else
+  //     data_ = new MapData(costmap_resolution_, map_zero_offset_);
+  // }
 
-  data_->load(filename);
+  // data_->load(filename);
 
   update();
 
@@ -77,11 +79,11 @@ bool MapManager::loadCostmap(const QString& filename)
   
   costmap_img_->load(filename);
 
-  if (data_ != nullptr)
-  {
-    if (!data_->hasCostmapInfo())
-      data_->setCostmapInfo(costmap_resolution_, map_zero_offset_);
-  }
+  // if (data_ != nullptr)
+  // {
+  //   if (!data_->hasCostmapInfo())
+  //     data_->setCostmapInfo(costmap_resolution_, map_zero_offset_);
+  // }
 
   map_zero_offset_ = QPoint(0, -costmap_img_->height());
 

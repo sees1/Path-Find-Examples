@@ -3,7 +3,7 @@
 #include <memory>
 #include <tuple>
 #include <map>
-#include <numeric_limits>
+#include <limits>
 #include <algorithm>
 
 #include <QtWidgets>
@@ -12,6 +12,9 @@ struct Vertice
 {
   int id;
   QPointF coord;
+
+  bool operator<(const Vertice& other) const { return id < other.id; }
+  bool operator==(const Vertice& other) const { return id == other.id; }
 };
 
 class RoadGeometry
@@ -26,6 +29,7 @@ public:
   bool removeVerticeById(int id);
   std::tuple<Vertice, Vertice> betweenIds(const QPointF& point);
   std::vector<Vertice> getControlPoints();
+  std::tuple<Vertice, Vertice> getBasePoints();
   std::map<Vertice, std::vector<Vertice>> getGraph();
 
 private:
@@ -35,7 +39,7 @@ private:
 private:
   std::map<int, Vertice> ppoint_to_vertice_;
   std::map<Vertice, int> vertice_to_ppoint_;
-  std::shared_ptr<QVector<QPolygonF>> path_polygons_;
+  std::shared_ptr<QList<QPolygonF>> path_polygons_;
 
   int poly_count_;
 };
@@ -49,14 +53,14 @@ public:
   Road(const Type& t)
   : type_(t)
   { }
-  Road(const QPointF& s,
-       const QPointF& e)
-  : points_({s, e}),
+  Road(const Vertice& s,
+       const Vertice& e)
+  : control_points_({s, e}),
     type_(Type::Straight)
   { }
-  Road(const QPointF& s,
-       const QPointF& m,
-       const QPointF& e)
+  Road(const Vertice& s,
+       const Vertice& m,
+       const Vertice& e)
   : control_points_({s, e, m}),
     type_(Type::Arc)
   { }
@@ -64,7 +68,7 @@ public:
   // render path invoke
   virtual void setNextPoint(const QPointF& s, int id) = 0;
   virtual QPainterPath getPath(const QPoint& offset) = 0;
-  bool underPoint(const QPoint& offset);
+  bool underPoint(const QPointF& offset);
   bool isRoadBuilded();
   
   Type getType() { return type_; };
@@ -74,11 +78,14 @@ public:
   bool removeVerticeById(int id);
   std::tuple<Vertice, Vertice> betweenIds(const QPointF& point);
   std::vector<Vertice> getControlPoints();
+  std::tuple<Vertice, Vertice> getBasePoints();
   std::map<Vertice, std::vector<Vertice>> getGraph();
-  std::shared_ptr<QVector<QPolygonF>> getPathPolygons();
+  QList<QPolygonF> getPathPolygons();
+  int getPolyCount();
+  void setPolyCount(int poly_count);
 
 protected:
-  std::vector<QPointF> control_points_;
+  std::vector<Vertice> control_points_;
   std::shared_ptr<QPainterPath> path_;
   std::shared_ptr<RoadGeometry> road_geometry_;
   Type type_;
@@ -93,9 +100,9 @@ public:
   : Road(Type::Arc)
   { }
 
-  RoadArc(const QPointF& s,
-          const QPointF& m,
-          const QPointF& e)
+  RoadArc(const Vertice& s,
+          const Vertice& m,
+          const Vertice& e)
   : Road(s, m, e)
   { }
 
@@ -112,8 +119,8 @@ public:
   : Road(Type::Straight)
   { }
 
-  RoadStraight(const QPointF& s,
-               const QPointF& e)
+  RoadStraight(const Vertice& s,
+               const Vertice& e)
   : Road(s, e)
   { }
 

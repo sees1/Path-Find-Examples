@@ -29,17 +29,18 @@ public:
 
 private:
   void refreshGraph();
-  QPointF intersectPathPoint(const QPainterPath& lhs, const QPainterPath& rhs);
+  QPointF intersectPathPoint(const QList<QPolygonF>& lhs, const QList<QPolygonF>& rhs);
 
 private:
   std::vector<std::shared_ptr<Road>> roads_;
-  std::map<std::shared_ptr<Road>, std::vector<std::shared_ptr<Road>> intersection_;
-  std::map<Vertices, std::vector<Vertices>> graph_;
+  std::map<std::shared_ptr<Road>, std::vector<std::shared_ptr<Road>>> intersection_;
+  std::map<Vertice, std::vector<Vertice>> graph_;
 
-  std::vector<Vertice> needed_remove_;
+  std::vector<Vertice> remove_vertices_;
+  std::vector<std::shared_ptr<Road>> roads_need_clean_;
 
   int poly_count_;
 
   int vertices_idx_;
   int road_idx_;
-}
+};

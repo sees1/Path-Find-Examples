@@ -5,7 +5,8 @@
 
 #include <QtWidgets>
 
-#include "utils/vector_map_app/primitives.hpp"
+#include "utils/vector_map_app/map.hpp"
+#include "utils/vector_map_app/map_data.hpp"
 
 enum class Mode {
   IDLE = 0,
