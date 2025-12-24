@@ -24,9 +24,9 @@ set(vectorMap_include
   include/utils/vector_map_app/map_data.hpp
   include/utils/vector_map_app/map_manager.hpp
   include/utils/vector_map_app/map.hpp
-  include/utils/vector_map_app/primitives.hpp
   include/utils/vector_map_app/settings_dock.hpp
   include/utils/vector_map_app/tools_dock.hpp
+  include/utils/vector_map_app/primitives/primitives.hpp
 )
 
 set(vectorMap_src
@@ -36,7 +36,7 @@ set(vectorMap_src
   src/utils/vector_map_app/map.cpp
   src/utils/vector_map_app/settings_dock.cpp
   src/utils/vector_map_app/tools_dock.cpp
-  src/utils/vector_map_app/primitives.cpp
+  src/utils/vector_map_app/primitives/primitives.cpp
 )
 
 qt5_wrap_cpp(vectorMap_moc_src ${vectorMap_include})

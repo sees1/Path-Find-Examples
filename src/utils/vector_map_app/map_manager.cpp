@@ -4,7 +4,7 @@ MapManager::MapManager(QWidget* parent)
 : QWidget(parent),
   mode_(Mode::MOVE_CAMERA),
   costmap_img_(nullptr),
-  map_(new Map());
+  map_(new Map())
 {
   this->setStyleSheet("border:1px solid gray;");
   this->setMinimumSize(1000, 1000);
@@ -106,8 +106,11 @@ void MapManager::paintEvent(QPaintEvent* ev)
   if (costmap_img_ != nullptr)
     p.drawPixmap(globalToViewportCoord({0, 0}), *costmap_img_);
 
-  for (const auto& road : map_->getRoads()) 
+  for (const auto& road : map_->getRoads())
+  {
+    if (road->isRoadBuilded())
       p.drawPath(road->getPath(viewport_offset_));
+  }
 }
 
 void MapManager::mousePressEvent(QMouseEvent* ev)

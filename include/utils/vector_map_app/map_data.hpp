@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/vector_map_app/primitives.hpp"
+#include "utils/vector_map_app/primitives/primitives.hpp"
 
 #include <QString>
 

@@ -1,4 +1,4 @@
-#include "utils/vector_map_app/primitives.hpp"
+#include "utils/vector_map_app/primitives/primitives.hpp"
 
 RoadGeometry::RoadGeometry(std::shared_ptr<QPainterPath>& view_represent, 
                            std::vector<Vertice>& v,
@@ -68,6 +68,9 @@ std::tuple<Vertice, Vertice> RoadGeometry::betweenIds(const QPointF& point)
 
 std::vector<Vertice> RoadGeometry::getControlPoints()
 {
+  if (vertice_to_ppoint_.size() == 2)
+    return std::vector<Vertice>();
+
   auto start = vertice_to_ppoint_.begin();
   start++;
   auto end = vertice_to_ppoint_.end();
@@ -160,6 +163,7 @@ void RoadGeometry::subdividePath(std::shared_ptr<QPainterPath>& view_represent)
 {
   if (path_polygons_ == nullptr)
   {
+    path_polygons_ = std::make_shared<QList<QPolygonF>>();
     path_polygons_->reserve(poly_count_);
 
     qreal path_length = view_represent->length();

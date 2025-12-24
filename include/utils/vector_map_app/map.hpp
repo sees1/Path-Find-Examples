@@ -5,7 +5,7 @@
 #include <memory>
 #include <map>
 
-#include "utils/vector_map_app/primitives.hpp"
+#include "utils/vector_map_app/primitives/primitives.hpp"
 
 class Map : public QObject
 {

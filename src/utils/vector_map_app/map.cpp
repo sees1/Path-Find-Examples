@@ -52,19 +52,20 @@ void Map::createStraightRoad(const QPointF& first_point)
 void Map::setNextPoint(const QPointF& point)
 {
   roads_.back()->setNextPoint(point, ++vertices_idx_);
+  
+  if (roads_.back()->isRoadBuilded())
+  {
+    graph_.merge(roads_.back()->getGraph());
+    refreshGraph();
+  }
 }
 
 bool Map::onBuildStage()
 {
   if (roads_.empty())
-    return false;
+    return true;
 
-  bool status = roads_.back()->isRoadBuilded();
-
-  if (status)
-    graph_.merge(roads_.back()->getGraph());
-  
-  return status;
+  return roads_.back()->isRoadBuilded();
 }
 
 void Map::deleteRoad(const QPointF& point)
@@ -106,6 +107,8 @@ void Map::deleteRoad(const QPointF& point)
       intersection_.erase(remove_road);
     }
   );
+
+  roads_.erase(remove_iter, roads_.end());
 
   std::vector<std::shared_ptr<Road>> clean_roads;
 
@@ -177,55 +180,59 @@ void Map::refreshGraph()
     return;
   }
 
-  const auto& new_road = roads_.back();
-  const auto& new_road_path = roads_.back()->getPath(QPoint(0, 0));
+  // TODO: add here a intelligent check for roads_ emptyness
+  if (roads_.size() != 0)
+  {
+    const auto& new_road = roads_.back();
+    const auto& new_road_path = roads_.back()->getPath(QPoint(0, 0));
 
-  std::for_each(roads_.begin(), roads_.end() - 1,
-    [this, &new_road, &new_road_path](const auto& road)
-    {
-      const auto& road_path = road->getPath(QPoint(0, 0));
-
-      if (road_path.intersects(new_road_path))
+    std::for_each(roads_.begin(), roads_.end() - 1,
+      [this, &new_road, &new_road_path](const auto& road)
       {
-        auto road_poly = road->getPathPolygons();
-        auto new_road_poly = new_road->getPathPolygons();
+        const auto& road_path = road->getPath(QPoint(0, 0));
 
-        QPointF inter_point = intersectPathPoint(road_poly, new_road_poly);
-        vertices_idx_++;
+        if (road_path.intersects(new_road_path))
+        {
+          auto road_poly = road->getPathPolygons();
+          auto new_road_poly = new_road->getPathPolygons();
 
-        Vertice new_road_l, new_road_r;
-        Vertice old_road_l, old_road_r;
+          QPointF inter_point = intersectPathPoint(road_poly, new_road_poly);
+          vertices_idx_++;
 
-        std::tie(new_road_l, new_road_r) = new_road->betweenIds(inter_point);
-        std::tie(old_road_l, old_road_r) = road->betweenIds(inter_point);
+          Vertice new_road_l, new_road_r;
+          Vertice old_road_l, old_road_r;
 
-        auto& vec_n_l = graph_[new_road_l];
-        graph_[new_road_l].erase(std::remove(vec_n_l.begin(), vec_n_l.end(), new_road_r), vec_n_l.end());
-        auto& vec_n_r = graph_[new_road_r];
-        graph_[new_road_r].erase(std::remove(vec_n_r.begin(), vec_n_r.end(), new_road_l), vec_n_r.end());
+          std::tie(new_road_l, new_road_r) = new_road->betweenIds(inter_point);
+          std::tie(old_road_l, old_road_r) = road->betweenIds(inter_point);
 
-        auto& vec_o_l = graph_[old_road_l];
-        graph_[old_road_l].erase(std::remove(vec_o_l.begin(), vec_o_l.end(), old_road_r), vec_o_l.end());
-        auto& vec_o_r = graph_[old_road_r];
-        graph_[old_road_r].erase(std::remove(vec_o_r.begin(), vec_o_r.end(), old_road_l), vec_o_r.end());
+          auto& vec_n_l = graph_[new_road_l];
+          graph_[new_road_l].erase(std::remove(vec_n_l.begin(), vec_n_l.end(), new_road_r), vec_n_l.end());
+          auto& vec_n_r = graph_[new_road_r];
+          graph_[new_road_r].erase(std::remove(vec_n_r.begin(), vec_n_r.end(), new_road_l), vec_n_r.end());
 
-        Vertice temp = new_road->addVertice(inter_point, vertices_idx_);
-        road->addVertice(inter_point, vertices_idx_);
+          auto& vec_o_l = graph_[old_road_l];
+          graph_[old_road_l].erase(std::remove(vec_o_l.begin(), vec_o_l.end(), old_road_r), vec_o_l.end());
+          auto& vec_o_r = graph_[old_road_r];
+          graph_[old_road_r].erase(std::remove(vec_o_r.begin(), vec_o_r.end(), old_road_l), vec_o_r.end());
 
-        graph_[new_road_l].push_back(temp);
-        graph_[new_road_r].push_back(temp);
-        graph_[old_road_l].push_back(temp);
-        graph_[old_road_r].push_back(temp);
-        graph_[temp].push_back(new_road_l);
-        graph_[temp].push_back(new_road_r);
-        graph_[temp].push_back(old_road_l);
-        graph_[temp].push_back(old_road_r);
+          Vertice temp = new_road->addVertice(inter_point, vertices_idx_);
+          road->addVertice(inter_point, vertices_idx_);
 
-        intersection_[road].push_back(new_road);
-        intersection_[new_road].push_back(road);
+          graph_[new_road_l].push_back(temp);
+          graph_[new_road_r].push_back(temp);
+          graph_[old_road_l].push_back(temp);
+          graph_[old_road_r].push_back(temp);
+          graph_[temp].push_back(new_road_l);
+          graph_[temp].push_back(new_road_r);
+          graph_[temp].push_back(old_road_l);
+          graph_[temp].push_back(old_road_r);
+
+          intersection_[road].push_back(new_road);
+          intersection_[new_road].push_back(road);
+        }
       }
-    }
-  );
+    );
+  }
 }
 
 QPointF Map::intersectPathPoint(const QList<QPolygonF>& lhs, const QList<QPolygonF>& rhs)
