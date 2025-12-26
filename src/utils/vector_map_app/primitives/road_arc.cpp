@@ -18,5 +18,5 @@ QPainterPath RoadArc::getPath(const QPoint& offset)
     road_geometry_ = std::make_shared<RoadGeometry>(path_, control_points_, 100);
   }
   
-  return path_->translated(-offset);
+  return path_->translated(offset);
 }

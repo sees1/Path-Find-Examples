@@ -33,10 +33,6 @@ public:
   bool loadData(const QString& filename); 
   bool loadCostmap(const QString& filename);
 
-private:
-  QPoint viewportToGlobalCoord(const QPoint& coord);
-  QPoint globalToViewportCoord(const QPoint& coord);
-
 protected:
   void paintEvent(QPaintEvent* ev) override;
   void mousePressEvent(QMouseEvent* ev) override;
@@ -59,7 +55,7 @@ private:
 
   QPoint last_mouse_pos_;
 
-  QPoint viewport_offset_;
+  QTransform viewport_offset_;
   QPoint map_zero_offset_;
 
   QPixmap* costmap_img_;

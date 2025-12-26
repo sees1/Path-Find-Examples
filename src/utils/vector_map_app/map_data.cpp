@@ -43,24 +43,24 @@ void MapData::load(const QString& filename)
 
 std::vector<QLineF> MapData::subdivideRoad(std::shared_ptr<Road> road, int poly_count)
 {
-  std::vector<QLineF> res;
-  res.reserve(poly_count);
+  // std::vector<QLineF> res;
+  // res.reserve(poly_count);
 
-  QPainterPath path = road->getPath(QPoint(0, 0));
-  qreal path_length = path.length();
-  qreal step = path_length / poly_count;
+  // QPainterPath path = road->getPath(QPoint(0, 0));
+  // qreal path_length = path.length();
+  // qreal step = path_length / poly_count;
 
-  QPointF prev_point = path.pointAtPercent(0.0);
+  // QPointF prev_point = path.pointAtPercent(0.0);
 
-  for(int i = 1; i <= poly_count; ++i)
-  {
-    qreal cur_len = i * step;
-    qreal cur_point_per = path.percentAtLength(cur_len);
-    QPointF cur_point = path.pointAtPercent(cur_point_per);
+  // for(int i = 1; i <= poly_count; ++i)
+  // {
+  //   qreal cur_len = i * step;
+  //   qreal cur_point_per = path.percentAtLength(cur_len);
+  //   QPointF cur_point = path.pointAtPercent(cur_point_per);
 
-    res.emplace_back(prev_point, cur_point);
-    prev_point = cur_point;
-  }
+  //   res.emplace_back(prev_point, cur_point);
+  //   prev_point = cur_point;
+  // }
 
-  return res;
+  // return res;
 }

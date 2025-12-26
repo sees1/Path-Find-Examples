@@ -22,27 +22,9 @@ MapManager::~MapManager()
 
 void MapManager::pan(const QPoint& delta)
 {
-  viewport_offset_-= delta;
+  viewport_offset_.translate(-delta.x(), -delta.y());
 
   update();
-}
-
-QPoint MapManager::viewportToGlobalCoord(const QPoint& coord)
-{
-  QPoint res;
-  res.setX(viewport_offset_.x() + coord.x());
-  res.setY(viewport_offset_.y() + coord.y());
-
-  return res;
-}
-
-QPoint MapManager::globalToViewportCoord(const QPoint& coord)
-{
-  QPoint res;
-  res.setX(coord.x() - viewport_offset_.x());
-  res.setY(coord.y() - viewport_offset_.y());
-
-  return res;
 }
 
 bool MapManager::saveData(const QString& filename)
@@ -104,12 +86,12 @@ void MapManager::paintEvent(QPaintEvent* ev)
   p.fillRect(rect(), Qt::white);
 
   if (costmap_img_ != nullptr)
-    p.drawPixmap(globalToViewportCoord({0, 0}), *costmap_img_);
+    p.drawPixmap(viewport_offset_.inverted().map(QPoint(0, 0)), *costmap_img_);
 
   for (const auto& road : map_->getRoads())
   {
     if (road->isRoadBuilded())
-      p.drawPath(road->getPath(viewport_offset_));
+      p.drawPath(road->getPath(viewport_offset_.inverted().map(QPoint(0, 0))));
   }
 }
 
@@ -132,9 +114,9 @@ void MapManager::mousePressEvent(QMouseEvent* ev)
       case Mode::CREATE_ARC_ROAD:
       {
         if (map_->onBuildStage())
-          map_->createArcRoad(viewportToGlobalCoord(ev->pos()));
+          map_->createArcRoad(viewport_offset_.map(ev->pos()));
         else
-          map_->setNextPoint(viewportToGlobalCoord(ev->pos()));
+          map_->setNextPoint(viewport_offset_.map(ev->pos()));
 
         update();
 
@@ -143,9 +125,9 @@ void MapManager::mousePressEvent(QMouseEvent* ev)
       case Mode::CREATE_STRAIGHT_ROAD:
       {
         if (map_->onBuildStage())
-          map_->createStraightRoad(viewportToGlobalCoord(ev->pos()));
+          map_->createStraightRoad(viewport_offset_.map(ev->pos()));
         else
-          map_->setNextPoint(viewportToGlobalCoord(ev->pos()));
+          map_->setNextPoint(viewport_offset_.map(ev->pos()));
 
         update();
 
@@ -153,7 +135,7 @@ void MapManager::mousePressEvent(QMouseEvent* ev)
       }
       case Mode::DELETE_ROAD:
       {
-        map_->deleteRoad(viewportToGlobalCoord(ev->pos()));
+        map_->deleteRoad(viewport_offset_.map(ev->pos()));
         
         update();
 
@@ -223,6 +205,6 @@ void MapManager::setMoveCameraMode()
 
 void MapManager::goToZeroViewport()
 {
-  viewport_offset_ = QPoint(0, 0);
+  viewport_offset_ = QTransform();
   update();
 }
