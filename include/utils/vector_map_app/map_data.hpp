@@ -1,10 +1,12 @@
 #pragma once
 
-#include "utils/vector_map_app/primitives/primitives.hpp"
+#include "utils/vector_map_app/primitives/road_base.hpp"
 
 #include <QString>
 
 #include <optional>
+
+class Map;
 
 class MapData {
 public:
@@ -14,7 +16,7 @@ public:
   bool hasCostmapInfo();
   bool setCostmapInfo(float resolution, const QPoint& offset);
 
-  void saveTo(const QString& filename, const std::vector<std::shared_ptr<Road>>& roads, int poly_count);
+  void saveTo(const QString& filename, const Map* roads, int poly_count);
   void load(const QString& filename);
 
 private:

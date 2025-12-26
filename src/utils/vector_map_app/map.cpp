@@ -1,5 +1,8 @@
 #include "utils/vector_map_app/map.hpp"
- 
+
+#include "utils/vector_map_app/primitives/road_arc.hpp"
+#include "utils/vector_map_app/primitives/road_straight.hpp"
+
 #include <algorithm>
 
 Map::Map()

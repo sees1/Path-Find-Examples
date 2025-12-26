@@ -26,7 +26,9 @@ set(vectorMap_include
   include/utils/vector_map_app/map.hpp
   include/utils/vector_map_app/settings_dock.hpp
   include/utils/vector_map_app/tools_dock.hpp
-  include/utils/vector_map_app/primitives/primitives.hpp
+  include/utils/vector_map_app/primitives/road_arc.hpp
+  include/utils/vector_map_app/primitives/road_straight.hpp
+  include/utils/vector_map_app/primitives/road_base.hpp
 )
 
 set(vectorMap_src
@@ -36,7 +38,10 @@ set(vectorMap_src
   src/utils/vector_map_app/map.cpp
   src/utils/vector_map_app/settings_dock.cpp
   src/utils/vector_map_app/tools_dock.cpp
-  src/utils/vector_map_app/primitives/primitives.cpp
+  src/utils/vector_map_app/primitives/road_geometry.cpp
+  src/utils/vector_map_app/primitives/road_arc.cpp
+  src/utils/vector_map_app/primitives/road_straight.cpp
+  src/utils/vector_map_app/primitives/road_base.cpp
 )
 
 qt5_wrap_cpp(vectorMap_moc_src ${vectorMap_include})
