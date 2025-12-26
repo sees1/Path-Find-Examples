@@ -6,24 +6,12 @@ RoadGeometry::RoadGeometry(std::shared_ptr<QPainterPath>& view_represent,
 {
   int elem_count = view_represent->elementCount();
 
-  if (elem_count == 2) // straight road (divide by ourself)
-  {
-    poly_count_ = poly_count;
-    subdividePath(view_represent);
-    ppoint_to_vertice_[0] = v[0];
-    ppoint_to_vertice_[poly_count_] = v[1];
-    vertice_to_ppoint_[v[0]] = 0;
-    vertice_to_ppoint_[v[1]] = poly_count_;
-  }
-  else if (elem_count == 3)
-  {
-    path_polygons_ = std::make_shared<QList<QPolygonF>>(std::move(view_represent->toSubpathPolygons()));
-    poly_count_ = (path_polygons_->size() - 1);
-    ppoint_to_vertice_[0] = v[0];
-    ppoint_to_vertice_[poly_count_] = v[2];
-    vertice_to_ppoint_[v[0]] = 0;
-    vertice_to_ppoint_[v[2]] = poly_count_;
-  }
+  poly_count_ = poly_count;
+  subdividePath(view_represent);
+  ppoint_to_vertice_[0] = v[0];
+  ppoint_to_vertice_[poly_count_] = v[1];
+  vertice_to_ppoint_[v[0]] = 0;
+  vertice_to_ppoint_[v[1]] = poly_count_;
 }
 
 Vertice RoadGeometry::addVertice(const QPointF& point, int id)
@@ -68,17 +56,13 @@ std::tuple<Vertice, Vertice> RoadGeometry::betweenIds(const QPointF& point)
 
 std::vector<Vertice> RoadGeometry::getControlPoints()
 {
-  if (vertice_to_ppoint_.size() == 2)
-    return std::vector<Vertice>();
-
+  // veritce is sorted by id!!!
   auto start = vertice_to_ppoint_.begin();
   start++;
-  auto end = vertice_to_ppoint_.end();
-  end--;
-  end--;
+  start++;
 
   std::vector<Vertice> res;
-  for(start; start != end; ++start)
+  for(start; start != vertice_to_ppoint_.end(); ++start)
   {
     res.push_back((*start).first);
   }
@@ -88,9 +72,11 @@ std::vector<Vertice> RoadGeometry::getControlPoints()
 
 std::tuple<Vertice, Vertice> RoadGeometry::getBasePoints()
 {
-  auto end = vertice_to_ppoint_.end();
-  end--;
-  return std::make_tuple((*vertice_to_ppoint_.begin()).first, (*end).first);
+  // veritce is sorted by id!!!
+  auto left = vertice_to_ppoint_.begin();
+  auto right = left;
+  right++;
+  return std::make_tuple((*left).first, (*(right)).first);
 }
 
 std::map<Vertice, std::vector<Vertice>> RoadGeometry::getGraph()
@@ -186,6 +172,9 @@ void RoadGeometry::subdividePath(std::shared_ptr<QPainterPath>& view_represent)
 
 bool Road::underPoint(const QPointF& global_mouse_pose)
 {
+  if (path_ == nullptr)
+    return false;
+
   QPainterPathStroker stroker;
   stroker.setWidth(15);
 

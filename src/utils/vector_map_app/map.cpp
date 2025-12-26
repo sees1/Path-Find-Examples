@@ -73,38 +73,38 @@ void Map::deleteRoad(const QPointF& point)
   auto remove_iter = std::remove_if(roads_.begin(), roads_.end(),
     [this, &point](const auto& road)
     {
-      return road->underPoint(point); 
-    }
-  );
-
-  std::for_each(remove_iter, roads_.end(),
-    [this](auto& remove_road)
-    {
-      auto control_vertice = remove_road->getControlPoints();
-      Vertice base_vertice_l, base_vertice_r;
-      std::tie(base_vertice_l, base_vertice_r) = remove_road->getBasePoints();
-      remove_vertices_.insert(remove_vertices_.end(), control_vertice.begin(), control_vertice.end());
-
-      // remove base vertice of deleted road
-      for(auto& [u, neighbors] : graph_)
+      if (road->underPoint(point)) 
       {
-        neighbors.erase(std::remove(neighbors.begin(), neighbors.end(), base_vertice_l), neighbors.end());
-        neighbors.erase(std::remove(neighbors.begin(), neighbors.end(), base_vertice_r), neighbors.end());
+        auto control_vertice = road->getControlPoints();
+        Vertice base_vertice_l, base_vertice_r;
+        std::tie(base_vertice_l, base_vertice_r) = road->getBasePoints();
+        remove_vertices_.insert(remove_vertices_.end(), control_vertice.begin(), control_vertice.end());
+
+        // remove base vertice of deleted road
+        for(auto& [u, neighbors] : graph_)
+        {
+          neighbors.erase(std::remove(neighbors.begin(), neighbors.end(), base_vertice_l), neighbors.end());
+          neighbors.erase(std::remove(neighbors.begin(), neighbors.end(), base_vertice_r), neighbors.end());
+        }
+
+        graph_.erase(base_vertice_l);
+        graph_.erase(base_vertice_r);
+
+        // add roads that should be cleaned  
+        roads_need_clean_.insert(roads_need_clean_.end(), intersection_[road].begin(), intersection_[road].end());
+
+        // remove deleted road from dependency roads
+        for(auto& [key_road, inter_road] : intersection_)
+        {
+          inter_road.erase(std::remove(inter_road.begin(), inter_road.end(), road), inter_road.end());
+        }
+
+        intersection_.erase(road);
+
+        return true;
       }
 
-      graph_.erase(base_vertice_l);
-      graph_.erase(base_vertice_r);
-
-      // add roads that should be cleaned  
-      roads_need_clean_.insert(roads_need_clean_.end(), intersection_[remove_road].begin(), intersection_[remove_road].end());
-
-      // remove deleted road from dependency roads
-      for(auto& [road, inter_road] : intersection_)
-      {
-        inter_road.erase(std::remove(inter_road.begin(), inter_road.end(), remove_road), inter_road.end());
-      }
-
-      intersection_.erase(remove_road);
+      return false;
     }
   );
 
@@ -122,7 +122,9 @@ void Map::deleteRoad(const QPointF& point)
 
   roads_need_clean_ = clean_roads;
 
-  refreshGraph();
+  // add more intelligent check for need graph refresh
+  if (!roads_need_clean_.empty())
+    refreshGraph();
 }
 
 void Map::setPolyCount(int poly_count)
@@ -145,21 +147,21 @@ void Map::refreshGraph()
     {
       auto control_points = road->getControlPoints();
 
-      auto remove_iter = std::remove_if(control_points.begin(), control_points.end(),
-                            [this](auto& point)
-                            {
-                              return std::find(remove_vertices_.begin(), remove_vertices_.end(), point) != remove_vertices_.end();
-                            }
-                         );
-      
-      std::for_each(remove_iter, control_points.end(),
-        [this, &remove_from_road, &road](auto& point)
-        {
-          remove_from_road.push_back({road, point});
-          road->removeVerticeById(point.id);
-        }
-      );
+      // remove point from current (not from graph!) road
+      std::for_each(control_points.begin(), control_points.end(),
+                    [this, &remove_from_road, &road](auto& point)
+                    {
+                      if (std::find(remove_vertices_.begin(), remove_vertices_.end(), point) != remove_vertices_.end())
+                      {
+                        remove_from_road.push_back({road, point});
+                        road->removeVerticeById(point.id);
+                      }
+                    }
+                  );
     }
+
+    roads_need_clean_.clear();
+    remove_vertices_.clear();
 
     for(auto& [road, vertice] : remove_from_road)
     {

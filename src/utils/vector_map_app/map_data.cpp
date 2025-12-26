@@ -20,7 +20,7 @@ bool MapData::setCostmapInfo(float resolution, const QPoint& offset)
   return true;
 }
 
-void MapData::saveTo(const QString& filename, const std::vector<std::shared_ptr<Road>>& roads, int poly_count)
+void MapData::saveTo(const QString& filename, const Map* roads, int poly_count)
 {
   std::ofstream file(filename.toStdString());
 
