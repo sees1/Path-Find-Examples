@@ -39,6 +39,11 @@ std::tuple<Vertice, Vertice> Road::betweenIds(const QPointF& point)
   return road_geometry_->betweenIds(point);
 }
 
+QPolygonF Road::polygonBetweenIds(const Vertice& first, const Vertice& second)
+{
+  return road_geometry_->polygonBetweenIds(first, second);
+}
+
 std::vector<Vertice> Road::getControlPoints()
 {
   return road_geometry_->getControlPoints();

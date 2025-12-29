@@ -35,6 +35,7 @@ public:
   Vertice addVertice(const QPointF& point, int id);
   bool removeVerticeById(int id);
   std::tuple<Vertice, Vertice> betweenIds(const QPointF& point);
+  QPolygonF polygonBetweenIds(const Vertice& first, const Vertice& second);
   std::vector<Vertice> getControlPoints();
   std::tuple<Vertice, Vertice> getBasePoints();
   std::map<Vertice, std::vector<Vertice>> getGraph();

@@ -8,6 +8,8 @@
 
 class Map;
 
+std::ofstream& operator<<(std::ofstream& out, QPolygonF& obj);
+
 class MapData {
 public:
   MapData() { }
@@ -16,7 +18,7 @@ public:
   bool hasCostmapInfo();
   bool setCostmapInfo(float resolution, const QPoint& offset);
 
-  void saveTo(const QString& filename, const Map* roads, int poly_count);
+  void saveTo(const QString& filename, Map* roads, int poly_count);
   void load(const QString& filename);
 
 private:

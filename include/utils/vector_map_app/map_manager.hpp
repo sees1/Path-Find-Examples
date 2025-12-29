@@ -56,7 +56,7 @@ private:
   QPoint last_mouse_pos_;
 
   QTransform viewport_offset_;
-  QPoint map_zero_offset_;
+  QTransform map_zero_offset_;
 
   QPixmap* costmap_img_;
 

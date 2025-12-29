@@ -4,8 +4,6 @@ RoadGeometry::RoadGeometry(std::shared_ptr<QPainterPath>& view_represent,
                            std::vector<Vertice>& v,
                            int poly_count)
 {
-  int elem_count = view_represent->elementCount();
-
   poly_count_ = poly_count;
   subdividePath(view_represent);
   ppoint_to_vertice_[0] = v[0];
@@ -52,6 +50,29 @@ std::tuple<Vertice, Vertice> RoadGeometry::betweenIds(const QPointF& point)
   auto upper_v = ppoint_to_vertice_.upper_bound(ppoint);
 
   return std::make_tuple((*lower_v).second, (*upper_v).second);
+}
+
+QPolygonF RoadGeometry::polygonBetweenIds(const Vertice& first, const Vertice& second)
+{
+  int first_ppoint = vertice_to_ppoint_[first];
+  int second_ppoint = vertice_to_ppoint_[second];
+  
+  QPolygonF res; 
+
+  if (first_ppoint == second_ppoint)
+    return res;
+  else
+    res = (*path_polygons_)[first_ppoint];
+
+  for (++first_ppoint; first_ppoint <= second_ppoint; ++first_ppoint)
+  {
+    const QPolygonF& temp = (*path_polygons_)[first_ppoint];
+
+    for (size_t i = 1; i < temp.size(); ++i)
+      res << temp[i];
+  }
+
+  return res;
 }
 
 std::vector<Vertice> RoadGeometry::getControlPoints()
@@ -107,6 +128,7 @@ std::map<Vertice, std::vector<Vertice>> RoadGeometry::getGraph()
   return res;
 }
 
+// TODO: add conversion for ppoint (how it placed in path and what mean appropriation vertice to ppoint)
 int RoadGeometry::findClosestPoint(const QPointF& target)
 {
   int best_ppoint = -1;
@@ -160,8 +182,8 @@ void RoadGeometry::subdividePath(std::shared_ptr<QPainterPath>& view_represent)
     for(int i = 1; i <= poly_count_; ++i)
     {
       qreal cur_len = i * step;
-      qreal cur_point_per = view_represent->percentAtLength(cur_len);
-      QPointF cur_point = view_represent->pointAtPercent(cur_point_per);
+
+      QPointF cur_point = view_represent->pointAtPercent(view_represent->percentAtLength(cur_len));
 
       QPolygonF temp (QVector<QPointF>({prev_point, cur_point}));
       (*path_polygons_).append(temp);

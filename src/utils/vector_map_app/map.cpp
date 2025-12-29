@@ -140,6 +140,47 @@ std::vector<std::shared_ptr<Road>>& Map::getRoads()
   return roads_;
 }
 
+std::map<std::pair<Vertice, Vertice>, QPolygonF> Map::getGraphPolygons() const
+{
+  std::map<std::pair<Vertice, Vertice>, QPolygonF> res;
+  for (const auto& road : roads_)
+  {
+    Vertice base_l, base_r;
+    std::tie(base_l, base_r) = road->getBasePoints();
+    std::vector<Vertice> control_v = road->getControlPoints();
+    size_t control_v_s = control_v.size();
+
+    Vertice search_v = base_l;
+    for(size_t i = 0; i < control_v_s; ++i)
+    {
+      auto iter = std::find_if(graph_.at(search_v).begin(), graph_.at(search_v).end(),
+        [&control_v](auto adj_v)
+        {
+          return (std::find(control_v.begin(), control_v.end(), adj_v) != control_v.end());
+        }
+      );
+
+      if (res.find(std::make_pair(search_v, *iter)) != res.end() ||
+          res.find(std::make_pair(*iter, search_v)) != res.end())
+        continue;
+      
+      QPolygonF poly = road->polygonBetweenIds(search_v, *iter);
+
+      res[std::make_pair(search_v, *iter)] = poly;
+      res[std::make_pair(*iter, search_v)] = poly;
+
+      search_v = *iter;
+    }
+  }
+
+  return res;
+}
+
+std::map<Vertice, std::vector<Vertice>> Map::getGraph() const
+{
+  return graph_;
+}
+
 void Map::refreshGraph()
 {
   if (!remove_vertices_.empty())

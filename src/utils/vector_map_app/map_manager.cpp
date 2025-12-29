@@ -67,7 +67,7 @@ bool MapManager::loadCostmap(const QString& filename)
   //     data_->setCostmapInfo(costmap_resolution_, map_zero_offset_);
   // }
 
-  map_zero_offset_ = QPoint(0, -costmap_img_->height());
+  map_zero_offset_.translate(0, -costmap_img_->height());
 
   update();
 

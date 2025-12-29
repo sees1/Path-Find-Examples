@@ -11,9 +11,6 @@ class Map : public QObject
 {
   Q_OBJECT
 public:
-  using RoadIter = std::vector<std::shared_ptr<Road>>;
-  using ConstRoadIter = std::vector<std::shared_ptr<Road>>; 
-public:
   Map();
 
   void createArcRoad(const QPointF& first_point);
@@ -26,6 +23,11 @@ public:
   void setPolyCount(int poly_count);
 
   std::vector<std::shared_ptr<Road>>& getRoads();
+
+  // TODO: think about move this code to MapData class, bcse it have access to Map and road data...
+  // method's used by MapData object
+  std::map<std::pair<Vertice, Vertice>, QPolygonF> getGraphPolygons() const;
+  std::map<Vertice, std::vector<Vertice>> getGraph() const;
 
 private:
   void refreshGraph();
