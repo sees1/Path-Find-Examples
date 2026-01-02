@@ -21,6 +21,8 @@ class RoadGeometry
 {
 public:
   RoadGeometry() = delete;
+  RoadGeometry(std::shared_ptr<QList<QPolygonF>>& poly_represent,
+               std::vector<Vertice>& all_v);
   RoadGeometry(std::shared_ptr<QPainterPath>& view_represent,
                std::vector<Vertice>& v,
                int poly_count);
@@ -40,6 +42,7 @@ private:
 private:
   std::map<int, Vertice> ppoint_to_vertice_;
   std::map<Vertice, int> vertice_to_ppoint_;
+  // TODO: add here invariant that use control points as pivot for main QPolygonF.
   std::shared_ptr<QList<QPolygonF>> path_polygons_;
 
   int poly_count_;

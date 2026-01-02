@@ -16,6 +16,11 @@ public:
   : Road(s, e)
   { }
 
+  RoadStraight(std::shared_ptr<QList<QPolygonF>>& poly_set,
+               const std::vector<Vertice>& all_v)
+  : Road(poly_set, all_v, Type::Straight)
+  { }
+
   void setNextPoint(const QPointF& s, int id) override;
   QPainterPath getPath(const QPoint& offset) override;
 };

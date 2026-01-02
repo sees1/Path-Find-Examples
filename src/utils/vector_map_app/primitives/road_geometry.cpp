@@ -6,10 +6,17 @@ RoadGeometry::RoadGeometry(std::shared_ptr<QPainterPath>& view_represent,
 {
   poly_count_ = poly_count;
   subdividePath(view_represent);
+
+  size_t v_s = v.size()
   ppoint_to_vertice_[0] = v[0];
-  ppoint_to_vertice_[poly_count_] = v[1];
+  ppoint_to_vertice_[poly_count_] = v[v_s - 1];
   vertice_to_ppoint_[v[0]] = 0;
-  vertice_to_ppoint_[v[1]] = poly_count_;
+  vertice_to_ppoint_[v[v_s - 1]] = poly_count_;
+
+  for (size_t i = 1; i < (v_s - 1); ++i)
+  {
+    addVertice(v[i].coord, v[i].id);
+  }
 }
 
 Vertice RoadGeometry::addVertice(const QPointF& point, int id)
@@ -77,6 +84,7 @@ QPolygonF RoadGeometry::polygonBetweenIds(const Vertice& first, const Vertice& s
 
 std::vector<Vertice> RoadGeometry::getControlPoints()
 {
+  // TODO: swap map for vertice_to_ppoint to vector (we haven't performance glow up if we use map)
   // veritce is sorted by id!!!
   auto start = vertice_to_ppoint_.begin();
   start++;

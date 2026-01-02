@@ -1,5 +1,23 @@
 #include "utils/vector_map_app/primitives/road_base.hpp"
 
+Road::Road(std::shared_ptr<QList<QPolygonF>>& poly_set,
+           const std::vector<Vertice>& all_v,
+           const Type& t)
+: Road(t)
+{
+  all_v_s = all_v.size();
+
+  base_points_.push_back(all_v[0]);
+  base_points_.push_back(all_v[all_v_s - 1]);
+
+  path = std::make_shared<QPainterPath>();
+
+  for (const auto& poly : *poly_set)
+    path->addPolygon(poly);
+
+  road_geometry_ = std::make_shared<RoadGeometry>(path, all_v);
+}
+
 bool Road::underPoint(const QPointF& global_mouse_pose)
 {
   if (path_ == nullptr)
@@ -18,7 +36,7 @@ bool Road::isRoadBuilded()
 {
   size_t size_by_type = (type_ == Type::Straight) ? 2 : 3;
   
-  if (control_points_.size() != size_by_type)
+  if (base_points_.size() != size_by_type)
     return false;
 
   return true;
@@ -54,19 +72,20 @@ std::tuple<Vertice, Vertice> Road::getBasePoints()
   return road_geometry_->getBasePoints();
 }
 
+// TODO: ban this method for road that contains control points
 std::map<Vertice, std::vector<Vertice>> Road::getGraph()
 {
   std::map<Vertice, std::vector<Vertice>> graph;
 
   if (type_ == Type::Arc)
   {
-    graph[control_points_[0]] = std::vector<Vertice>{control_points_[2]};
-    graph[control_points_[2]] = std::vector<Vertice>{control_points_[0]};
+    graph[base_points_[0]] = std::vector<Vertice>{base_points_[2]};
+    graph[base_points_[2]] = std::vector<Vertice>{base_points_[0]};
   }
   else if (type_ == Type::Straight)
   {
-    graph[control_points_[0]] = std::vector<Vertice>{control_points_[1]};
-    graph[control_points_[1]] = std::vector<Vertice>{control_points_[0]};
+    graph[base_points_[0]] = std::vector<Vertice>{base_points_[1]};
+    graph[base_points_[1]] = std::vector<Vertice>{base_points_[0]};
   }
 
   return graph;

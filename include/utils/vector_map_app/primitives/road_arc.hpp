@@ -11,6 +11,11 @@ public:
   : Road(Type::Arc)
   { }
 
+  RoadArc(std::shared_ptr<QList<QPolygonF>>& poly_set,
+          const std::vector<Vertice>& all_v)
+  : Road(poly_set, all_v, Type::Arc)
+  { }
+
   RoadArc(const Vertice& s,
           const Vertice& m,
           const Vertice& e)

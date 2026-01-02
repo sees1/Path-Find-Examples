@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <tuple>
 
 #include "utils/vector_map_app/primitives/road_base.hpp"
 
@@ -26,8 +27,11 @@ public:
 
   // TODO: think about move this code to MapData class, bcse it have access to Map and road data...
   // method's used by MapData object
-  std::map<std::pair<Vertice, Vertice>, QPolygonF> getGraphPolygons() const;
+  std::vector<std::vector<std::tuple<Vertice, Vertice, QPolygonF, int>>> getGraphPolygons() const
   std::map<Vertice, std::vector<Vertice>> getGraph() const;
+
+  void loadRoads(std::vector<std::vector<std::tuple<Vertice, Vertice, QPolygonF, int>>>& polygons);
+  void loadGraph(std::map<Vertice, std::vector<Vertice>>& graph);
 
 private:
   void refreshGraph();

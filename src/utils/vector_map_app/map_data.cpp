@@ -30,7 +30,7 @@ bool MapData::setCostmapInfo(float resolution, const QPoint& offset)
   return true;
 }
 
-void MapData::saveTo(const QString& filename, Map* map, int poly_count)
+void MapData::saveTo(const QString& filename, Map* map)
 {
   std::ofstream file(filename.toStdString());
 
@@ -46,52 +46,196 @@ void MapData::saveTo(const QString& filename, Map* map, int poly_count)
     
     for(const auto& v : adj_vertices)
       file << std::to_string(v.id) << "(" << std::to_string(vertice.coord.x()) << "," << std::to_string(vertice.coord.y()) << ")" << " ";
+
+    file << std::endl;
   }
 
   file << std::endl;
 
-  std::map<std::pair<Vertice, Vertice>, QPolygonF> polygons = map->getGraphPolygons();
+  std::vector<std::vector<std::tuple<Vertice, Vertice, QPolygonF, int>>> polygons = map->getGraphPolygons();
 
-  size_t polygons_count = polygons.size() / 2;
+  size_t polygons_count = polygons.size();
 
   size_t poly_idx = 0;
   for(size_t i = 0; i < polygons_count; ++i)
   {
-    auto iter = polygons.begin();
-    auto rev_elem_iter = polygons.find(std::make_pair(iter->first.second, iter->first.first));
+    for(size_t j = 0; j < polygons[i].size(); ++j)
+    {
+      QPolygonF poly;
+      Vertice lhs, rhs;
+      int type;
+      std::tie(lhs, rhs, poly, type) = polygons[i];
 
-    file << "Polygon-" << std::to_string(poly_idx) << ":" << " " << iter->second << std::endl;
+      file << "Polygon-" << std::to_string(i) << "-" 
+                         << std::to_string(lhs) << "-"
+                         << std::to_string(rhs) << "-"
+                         << std::to_string(type) ":" << " " << poly << std::endl;
+    }
   }
 }
 
-void MapData::load(const QString& filename)
+void MapData::loadTo(const QString& filename, Map* map)
 {
   std::ifstream file(filename.toStdString());
 
   if (!file.is_open())
     throw std::runtime_error("Can't open file to load roads!");
-}
 
-std::vector<QLineF> MapData::subdivideRoad(std::shared_ptr<Road> road, int poly_count)
-{
-  // std::vector<QLineF> res;
-  // res.reserve(poly_count);
+  std::string line;
 
-  // QPainterPath path = road->getPath(QPoint(0, 0));
-  // qreal path_length = path.length();
-  // qreal step = path_length / poly_count;
+  bool graph_process = true;
 
-  // QPointF prev_point = path.pointAtPercent(0.0);
+  std::map<Vertice, std::vector<Vertice>> graph;
+  std::vector<std::vector<std::tuple<Vertice, Vertice, QPolygonF, int>>> polygons;
+  int max_id = -1;
 
-  // for(int i = 1; i <= poly_count; ++i)
-  // {
-  //   qreal cur_len = i * step;
-  //   qreal cur_point_per = path.percentAtLength(cur_len);
-  //   QPointF cur_point = path.pointAtPercent(cur_point_per);
+  while (std::getline(file, line))
+  {
+    if (line.size() == 0)
+    {
+      graph_process = false;
+      countinue;
+    }
+    
+    size_t delim_pos = line.find(":");
+    if (delim_pos != std::string::npos)
+    {
+      // we found start phrase (Graph: or Polygon-poly_id-graph_id-graph_id:)
+      if (graph_process)
+      {
+        std::string delim_pos_rhs = line.substr(++delim_pos, line.size());
 
-  //   res.emplace_back(prev_point, cur_point);
-  //   prev_point = cur_point;
-  // }
+        bool first_glance = true;
+        while(delim_pos != std::string::npos)
+        {
+          delim_pos = delim_pos_rhs.find("(");
+          std::string id = delim_pos_rhs.substr(delim_pos);
+          delim_pos_rhs = delim_pos_rhs.substr(++delim_pos, delim_pos_rhs.size());
 
-  // return res;
+          delim_pos = delim_pos_rhs.find(",");
+          std::string coord_x = delim_pos_rhs.substr(delim_pos);
+          delim_pos_rhs = delim_pos_rhs.substr(++delim_pos, delim_pos_rhs.size());
+
+          delim_pos = delim_pos_rhs.find(")");
+          std::string coord_y = delim_pos_rhs.substr(delim_pos);
+          delim_pos_rhs = delim_pos_rhs.substr(++delim_pos, delim_pos_rhs.size());
+          
+          if (first_glance)
+          {
+            delim_pos = delim_pos_rhs.find("-");
+            delim_pos_rhs = delim_pos_rhs.substr(++delim_pos, delim_pos_rhs.size());
+
+            // TODO: add here try catch
+            QPointF coord(std::stod(coord_x), std::stod(coord_y));
+            Vertice main {std::stoi(id), coord};
+            graph[main] = std::vector();
+          }
+          else
+          {
+            delim_pos = delim_pos_rhs.find(" ");
+            delim_pos_rhs = delim_pos_rhs.substr(++delim_pos, delim_pos_rhs.size());
+
+            QPointF coord(std::stod(coord_x), std::stod(coord_y));
+            Vertice temp(std::stoi(id), coord);
+
+            graph[main].push_back(temp);
+          }
+        }
+      }
+      else
+      {
+        std::string delim_pos_lhs = line.substr(delim_pos);
+
+        size_t delim_pos_slave = delim_pos_lhs.find("-");
+        delim_pos_lhs = delim_pos_lhs.substr(++delim_pos_slave, delim_pos_lhs.size());
+
+        delim_pos_slave = delim_pos_lhs.find("-");
+        std::string main_id = delim_pos_lhs.substr(delim_pos_slave);
+        delim_pos_lhs = delim_pos_lhs.substr(++delim_pos_slave, delim_pos_lhs.size());
+
+        delim_pos_slave = delim_pos_lhs.find("-");
+        std::string lhs_id = delim_pos_lhs.substr(delim_pos_slave);
+        delim_pos_lhs = delim_pos_lhs.substr(++delim_pos_slave, delim_pos_lhs.size());
+
+        delim_pos_slave = delim_pos_lhs.find("-");
+        std::string rhs_id = delim_pos_lhs.substr(delim_pos_slave);
+        delim_pos_lhs = delim_pos_lhs.substr(++delim_pos_slave, delim_pos_lhs.size());
+        std::string type = delim_pos_lhs;
+
+        std::string delim_pos_rhs = line.substr(++delim_pos);
+
+        QPolygonF poly;
+
+        while(delim_pos != std::string::npos)
+        {
+          delim_pos = delim_pos_rhs.find("(");
+          delim_pos_rhs = delim_pos_rhs.substr(++delim_pos);
+
+          delim_pos = delim_pos_rhs.find(",");
+          std::string coord_x = delim_pos_rhs.substr(delim_pos);
+          delim_pos_rhs = delim_pos_rhs.substr(++delim_pos, delim_pos_rhs.size());
+
+          delim_pos = delim_pos_rhs.find(")");
+          std::string coord_y = delim_pos_rhs.substr(delim_pos);
+          delim_pos_rhs = delim_pos_rhs.substr(++delim_pos, delim_pos_rhs.size());
+
+          QPointF coord(std::stod(coord_x), std::stod(coord_y));
+
+          poly.push_back(coord);
+        }
+
+        int main_id = std::stoi(main_id);
+        if (main_id > max_id)
+        {
+          polygons.resize(main_id);
+        }
+
+        polygons[main_id].push_back(std::tie(std::stoi(lhs_id), std::stoi(rhs_id), poly, std::stoi(type)));
+      }
+    }
+    else
+    {
+      std::string delim_pos_rhs = line;
+
+      bool first_glance = true;
+      while(delim_pos != std::string::npos)
+      {
+        delim_pos = delim_pos_rhs.find("(");
+        std::string id = delim_pos_rhs.substr(delim_pos);
+        delim_pos_rhs = delim_pos_rhs.substr(++delim_pos, delim_pos_rhs.size());
+
+        delim_pos = delim_pos_rhs.find(",");
+        std::string coord_x = delim_pos_rhs.substr(delim_pos);
+        delim_pos_rhs = delim_pos_rhs.substr(++delim_pos, delim_pos_rhs.size());
+
+        delim_pos = delim_pos_rhs.find(")");
+        std::string coord_y = delim_pos_rhs.substr(delim_pos);
+        delim_pos_rhs = delim_pos_rhs.substr(++delim_pos, delim_pos_rhs.size());
+        
+        if (first_glance)
+        {
+          delim_pos = delim_pos_rhs.find("-");
+          delim_pos_rhs = delim_pos_rhs.substr(++delim_pos, delim_pos_rhs.size());
+
+          // TODO: add here try catch
+          QPointF coord(std::stod(coord_x), std::stod(coord_y));
+          Vertice main {std::stoi(id), coord};
+          graph[main] = std::vector();
+        }
+        else
+        {
+          delim_pos = delim_pos_rhs.find(" ");
+          delim_pos_rhs = delim_pos_rhs.substr(++delim_pos, delim_pos_rhs.size());
+
+          QPointF coord(std::stod(coord_x), std::stod(coord_y));
+          Vertice temp(std::stoi(id), coord);
+
+          graph[main].push_back(temp);
+        }
+      }
+    } 
+  }
+
+  map->loadRoads(polygons);
+  map->loadGraph(graph);
 }

@@ -11,17 +11,10 @@ public:
   Road(const Type& t)
   : type_(t)
   { }
-  Road(const Vertice& s,
-       const Vertice& e)
-  : control_points_({s, e}),
-    type_(Type::Straight)
-  { }
-  Road(const Vertice& s,
-       const Vertice& m,
-       const Vertice& e)
-  : control_points_({s, e, m}),
-    type_(Type::Arc)
-  { }
+
+  Road(std::shared_ptr<QList<QPolygonF>>& poly_set,
+       const std::vector<Vertice>& all_v,
+       const Type& t);
 
   // render path invoke
   virtual void setNextPoint(const QPointF& s, int id) = 0;
@@ -44,7 +37,7 @@ public:
   void setPolyCount(int poly_count);
 
 protected:
-  std::vector<Vertice> control_points_;
+  std::vector<Vertice> base_points_;
   std::shared_ptr<QPainterPath> path_;
   std::shared_ptr<RoadGeometry> road_geometry_;
   Type type_;

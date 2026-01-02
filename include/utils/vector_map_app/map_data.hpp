@@ -18,11 +18,8 @@ public:
   bool hasCostmapInfo();
   bool setCostmapInfo(float resolution, const QPoint& offset);
 
-  void saveTo(const QString& filename, Map* roads, int poly_count);
-  void load(const QString& filename);
-
-private:
-  std::vector<QLineF> subdivideRoad(std::shared_ptr<Road> road, int poly_count);
+  void saveTo(const QString& filename, Map* map);
+  void loadTo(const QString& filename, Map* map);
 
 private:
   std::optional<QPoint> map_offset_;

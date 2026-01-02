@@ -140,9 +140,12 @@ std::vector<std::shared_ptr<Road>>& Map::getRoads()
   return roads_;
 }
 
-std::map<std::pair<Vertice, Vertice>, QPolygonF> Map::getGraphPolygons() const
+std::vector<std::vector<std::tuple<Vertice, Vertice, QPolygonF, int>>> Map::getGraphPolygons() const
 {
-  std::map<std::pair<Vertice, Vertice>, QPolygonF> res;
+  std::vector<std::vector<std::tuple<Vertice, Vertice, QPolygonF, int>>> res;
+  res.resize(roads_.size());
+
+  size_t main_id = 0;
   for (const auto& road : roads_)
   {
     Vertice base_l, base_r;
@@ -159,18 +162,16 @@ std::map<std::pair<Vertice, Vertice>, QPolygonF> Map::getGraphPolygons() const
           return (std::find(control_v.begin(), control_v.end(), adj_v) != control_v.end());
         }
       );
-
-      if (res.find(std::make_pair(search_v, *iter)) != res.end() ||
-          res.find(std::make_pair(*iter, search_v)) != res.end())
-        continue;
       
+      std::tuple<Vertice, Vertice, QPolygonF, int> tup;
+
       QPolygonF poly = road->polygonBetweenIds(search_v, *iter);
 
-      res[std::make_pair(search_v, *iter)] = poly;
-      res[std::make_pair(*iter, search_v)] = poly;
-
+      res[main_id].push_back(std::tie(search_v, *iter, poly, road->getType()));
       search_v = *iter;
     }
+
+    main_id++;
   }
 
   return res;
@@ -179,6 +180,92 @@ std::map<std::pair<Vertice, Vertice>, QPolygonF> Map::getGraphPolygons() const
 std::map<Vertice, std::vector<Vertice>> Map::getGraph() const
 {
   return graph_;
+}
+
+void loadRoads(std::vector<std::vector<std::tuple<Vertice, Vertice, QPolygonF, int>>>& polygons)
+{
+  // restore road geometry + render
+  roads_.clear();
+  
+  size_t polygons_s = polygons.size();
+  for(int i = 0; i < polygons_s; ++i)
+  {
+    size_t poly_s = polygons[i].size();
+    
+    std::vector<Vertice> all_v;
+    QPolygonF res_poly;
+    int type;
+
+    for(int j = 0; j < poly_s; ++j)
+    {
+      Vertice lhs, rhs;
+      QPolygonF poly;
+
+      std::tie(lhs, rhs, poly, type) = polygons[i][j];
+
+      all_v.push_back(lhs);
+
+      if (j = poly_s.size() - 1)
+        all_v.push_back(rhs);
+
+      size_t poly_s = poly.size();
+      for(size_t k = 0; k < poly_s; ++k)
+        res_poly << poly[k];
+    }
+
+    if (type == 0) // Arc
+      roads_.push_back(std::make_shared<RoadArc>(poly, all_v));
+    else if (type == 1) // Straight
+      roads_.push_back(std::make_shared<RoadStraight>(poly, all_v));
+  }
+}
+
+void loadGraph(std::map<Vertice, std::vector<Vertice>>& graph)
+{
+  graph_ = graph;
+
+  intersection_.clear();
+
+  // TODO: add here processing case where more than 2 roads crossed in one vertice (maybe 3 or more)
+  for (const auto& [vertice, adj_v] : graph_)
+  {
+    if (adj_v.size() == 4) // conect 2 roads
+    {
+      bool first_found = false;
+      std::shared_ptr<Road> first_road = nullptr;
+      std::shared_ptr<Road> second_road = nullptr;
+      for (const auto& road : roads_)
+      {
+        std::vector<Vertice> c_v = road->getControlPoints();
+
+        for (auto& v : c_v)
+        {
+          if (v == vertice) // first road found
+          {
+            if (!first_found)
+            {
+              first_road = road;
+              first_found = true;
+            }
+            else
+            {
+              first_found = false;
+              second_road = road;
+            }
+          }
+        }
+
+        if (first_road != nullptr && second_road != nullptr)
+        {
+          intersection_[first_road] = second_road;
+          intersection_[second_road] = first_road;
+
+          first_road = nullptr;
+          second_road = nullptr;
+        }
+      }
+    }
+  }
 }
 
 void Map::refreshGraph()
